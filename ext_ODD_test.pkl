@@ -1,0 +1,120 @@
+
+import   "ODD_template.pkl"
+
+ odd_req : ODD_template.ext_odd =  new {
+   scenery {
+     zone {
+       region_or_state = "sweden"
+       zone_type {
+         freight_distribution_centre = true
+       }
+     }
+   }
+   environment {
+     illumination {
+       natural_illumination {
+         sun_azimuth_angle = 126.0
+         sun_elevation_angle = 6.0
+       }
+     }
+   }
+  Safety_Hazard_Mitigation = 1
+  Test_Complexity = 1
+  Test_Environment_Fidelity = 2
+  SUT_Fidelity = 2
+ }
+
+
+
+odd_cap_carla: ODD_template.ext_odd = new {
+  scenery {
+    zone {
+      region_or_state = "sweden"
+      zone_type {
+        freight_distribution_centre = true
+      }
+    }
+  }
+  environment {
+    illumination {
+      natural_illumination {
+        // Max capbility
+        sun_azimuth_angle = 360.0
+        sun_elevation_angle = 90.0
+      }
+    }
+  }
+  Safety_Hazard_Mitigation = 3
+  Test_Complexity = 3
+  Test_Environment_Fidelity = 2
+  // Glare ceveat if for oblique angles
+  // When risk of glare SUT_Fidelity = low
+  SUT_Fidelity = (if (
+        (odd_req.environment.illumination.natural_illumination.sun_azimuth_angle >= 116.0)
+        && (odd_req.environment.illumination.natural_illumination.sun_azimuth_angle <= 136.0)
+        && (odd_req.environment.illumination.natural_illumination.sun_elevation_angle <= 10.0)
+    ) 1 else 2)
+}
+
+ odd_cap_scale: ODD_template.ext_odd = new {
+  scenery {
+    zone {
+      region_or_state = "sweden"
+      zone_type {
+        freight_distribution_centre = true
+      }
+    }
+  }
+  environment {
+    illumination {
+      natural_illumination {
+        // Max capbility
+        sun_azimuth_angle = 360.0
+        // Max for sweden
+        sun_elevation_angle = 55.0
+       }
+    }
+  }
+  Safety_Hazard_Mitigation = 3
+  Test_Complexity = 2
+  Test_Environment_Fidelity = 2
+  SUT_Fidelity = 2
+}
+
+
+
+
+
+
+
+hidden genericCompare: (Typed, Typed) -> Boolean = (ODD1, ODD2) ->
+  ODD1.getClass() == ODD2.getClass() && // Ensure both objects are of the same class
+    let (map_ODD1 = ODD1.toMap())
+    let (map_ODD2 = ODD2.toMap())
+      map_ODD1.fold(true, (comparison, parameter, value) ->
+        if (!comparison) false // If any comparison has already failed, return false immediately
+        else
+          let (other = map_ODD2[parameter]) // Handle missing fields gracefully
+          if (other == null && value == null) true // Treat null values as equal
+          else if (other == null || value == null) false // Mismatch between null and non-null
+          else
+            if (value is Boolean || value is String)
+              value == other // Must be exactly equal for Booleans and Strings
+            else if (value is Int)
+              value >= other // For numeric types, ensure value is greater or equal
+            else if (value is Float)
+              value >= other // Add tolerance for floating-point comparison
+            else if (value is Map)
+              // Compare nested structures if the value is a map
+              genericCompare.apply(value, other)
+            else if (value is Typed)
+              genericCompare.apply(value, other) // Recursively compare for nested Typed objects
+            else
+              false // Return false for any other types
+      )
+
+
+
+ Within_Carlas_Capabilities= genericCompare.apply(odd_cap_carla, odd_req)
+
+ Within_Scaled_truck_Capabilities = genericCompare.apply(odd_cap_scale, odd_req)

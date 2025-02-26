@@ -1,0 +1,20 @@
+@ModuleInfo { minPklVersion = "0.25.1" }
+module ODD.ODD_template.pkl
+
+import "dyn_template.pkl"
+import "env_sun_ext_template.pkl"
+import "scen_template.pkl"
+
+open class odd {
+  scenery : scen_template.scenery
+  environment: env_sun_ext_template.environment
+  dynamic : dyn_template.dynamic_elements
+}
+
+class ext_odd extends odd {
+  //  1 Low, 2 Medium , 3 High
+  Safety_Hazard_Mitigation: Int (isBetween(1,3))
+  Test_Complexity: Int (isBetween(1,3))
+  Test_Environment_Fidelity: Int (isBetween(1,3))
+  SUT_Fidelity: Int (isBetween(1,3))
+}
